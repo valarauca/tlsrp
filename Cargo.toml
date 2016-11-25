@@ -1,0 +1,9 @@
+[package]
+name = "tlsrp"
+version = "0.1.0"
+authors = ["valarauca"]
+
+[dependencies]
+mio = "0.6.1"
+clap = "2.19.0"
+rustls = "0.5.2"
