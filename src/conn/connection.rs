@@ -14,6 +14,7 @@ use super::stream::{
     StreamType
 };
 use super::fault::Fault;
+use super::super::workerid::WorkerID;
 
 ///Represents a single connection. Should be the size of 3 cache lines.
 #[repr(C)]
@@ -50,6 +51,18 @@ impl Connection {
             action: Ready::none(),
             pad: 0u64
         }
+    }
+
+    ///Set up a stream
+    pub fn setup(&mut self, x: Stream, w: WorkerID) -> Result<(),Stream> {
+        let x = replace( &mut self.data, x );
+        self.lock.manual_set(w);
+        if ! x.is_uninitialized() {
+            Err(x)
+        } else {
+            Ok(())
+        }
+    
     }
 
     ///Attempt to replace a stream. Returns a Err(Stream) if a
@@ -117,6 +130,10 @@ impl Locky for Connection {
     #[inline(always)]
     fn spinlock(&self) {
         self.lock.spinlock();
+    }
+    #[inline(always)]
+    fn worker(&self) -> Option<WorkerID> {
+        self.lock.worker()
     }
 }
 impl StreamType for Connection {

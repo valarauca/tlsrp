@@ -76,6 +76,7 @@ impl Stream {
         match poll.register(&x, t, r, PollOpt::level()) {
             Ok(_) => Ok(Stream::Tcp(x)),
             Err(e) => {
+                let _ = poll.deregister(&x);
                 let _ = x.shutdown(Shutdown::Both);
                 Err(Fault::from(e))
             }
@@ -87,6 +88,7 @@ impl Stream {
         match poll.register(&x, t, r, PollOpt::level()) {
             Ok(_) => Ok(Stream::Unix(x)),
             Err(e) => {
+                let _ = poll.deregister(&x);
                 let _ = x.shutdown(UnixShutdown::Both);
                 Err(Fault::from(e))
             }
@@ -100,6 +102,7 @@ impl Stream {
         match poll.register(&x, t, r, PollOpt::level()) {
             Ok(_) => { },
             Err(e) => {
+                let _ = poll.deregister(&x); 
                 let _ = x.shutdown(Shutdown::Both);
                 return Err(Fault::from(e));
             }

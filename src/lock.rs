@@ -1,5 +1,6 @@
 
 
+use super::workerid::{WorkerID,get_id};
 use std::sync::atomic::{AtomicUsize,Ordering};
 const SEQ: Ordering = Ordering::SeqCst;
 const REL: Ordering = Ordering::Relaxed;
@@ -10,6 +11,7 @@ pub trait Locky {
     fn try_lock(&self) -> bool;
     fn unlock(&self);
     fn spinlock(&self);
+    fn worker(&self) -> Option<WorkerID>;
 }
 
 ///A simple lock primative. Takes up 64bytes, a whole cache line on most AMD64 systems.
@@ -28,13 +30,38 @@ impl Lock {
             pad: [0u64;7]
         }
     }
+
+    ///Create with a worker in mind
+    pub fn give(w: WorkerID) -> Lock {
+        Lock {
+            locky: AtomicUsize::new(w.0),
+            pad: [0u64;7]
+        }
+    }
+
+    ///manually set the lock
+    pub fn manual_set(&self, w: WorkerID) {
+        self.locky.store(w.0,REL);
+    }
 }
 
 impl Locky for Lock {
+    ///Get the worker associated with a lock
+    #[inline(always)]
+    fn worker(&self) -> Option<WorkerID> {
+        let i = self.locky.load(REL);
+        if i == 0 {
+            None
+        } else {
+            Some(WorkerID(i))
+        }
+    }
+    
     ///Attempt to lock. Return's true if the lock succeeded
     #[inline(always)]
     fn try_lock(&self) -> bool {
-        self.locky.compare_and_swap(0,1,SEQ) == 0
+        let id = get_id();
+        self.locky.compare_and_swap(0,id,SEQ) == 0
     }
 
     ///Unlock the lock.
@@ -53,18 +80,23 @@ impl Locky for Lock {
     ///It may dead lock your program. Use with caution.
     #[inline(always)]
     fn spinlock(&self) {
-        while self.locky.compare_and_swap(0,1,SEQ) == 1 {
+        let id = get_id();
+        while self.locky.compare_and_swap(0,id,SEQ) != 0 {
             continue
         }
     }
 }
 #[test]
 fn test_lock() {
+    use super::workerid::set_id;
+    set_id(1);
     let l = Lock::new();
+    assert_eq!( l.worker(), None);
     assert!( ::std::mem::size_of::<Lock>() == 64);
     assert!( l.locky.load(REL) == 0usize);
     assert!( l.try_lock() );
     assert!( l.locky.load(REL) == 1usize);
+    assert_eq!( l.worker(), Some(WorkerID(1)));
     l.unlock();
     assert!( l.locky.load(REL) == 0usize);
     l.spinlock();

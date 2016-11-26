@@ -4,7 +4,8 @@ version = "0.1.0"
 authors = ["valarauca"]
 
 [dependencies]
+crossbeam = "0.2.10"
 mio = "0.6.1"
-lazy_static = "0.2.*"
+lazy_static ="0.2.*"
 native-tls = "0.1.0"
 clap = "2.19.0"
