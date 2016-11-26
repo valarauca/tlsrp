@@ -5,5 +5,6 @@ authors = ["valarauca"]
 
 [dependencies]
 mio = "0.6.1"
+lazy_static = "0.2.*"
+native-tls = "0.1.0"
 clap = "2.19.0"
-rustls = "0.5.2"

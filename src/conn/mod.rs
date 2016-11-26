@@ -1,4 +1,4 @@
+pub mod stream;
+pub mod connection;
+pub mod fault;
 
-mod status;
-mod fault;
-mod conn;
